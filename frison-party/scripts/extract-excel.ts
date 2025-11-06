@@ -1,60 +1,87 @@
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import * as XLSX from 'xlsx';
 import { createConvidado, getDb } from '../lib/db';
 
-const excelPath = join(process.cwd(), 'dados', 'ListaOficial_FestaFrison.xlsx');
+const csvPath = join(process.cwd(), 'dados', 'ListaOficial_FestaFrison.csv');
 
-async function extractExcel() {
-  console.log(`Procurando arquivo Excel em: ${excelPath}`);
+function padronizarNome(nome: string): string {
+  if (!nome) return '';
   
-  if (!existsSync(excelPath)) {
-    console.error(`Erro: Arquivo não encontrado em ${excelPath}`);
-    return;
-  }
-
-  const workbook = XLSX.readFile(excelPath);
-  const sheetName = workbook.SheetNames[0];
-  console.log(`Lendo planilha: ${sheetName}`);
+  // Remove espaços extras e trim
+  let nomePadronizado = nome.trim().replace(/\s+/g, ' ');
   
-  const sheet = workbook.Sheets[sheetName];
-  const data = XLSX.utils.sheet_to_json(sheet, { raw: false });
-  console.log(`Total de linhas lidas do Excel: ${data.length}`);
+  // Capitaliza primeira letra de cada palavra
+  nomePadronizado = nomePadronizado
+    .split(' ')
+    .map(palavra => {
+      if (palavra.length === 0) return '';
+      // Mantém palavras em maiúsculas se forem siglas (2-3 letras)
+      if (palavra.length <= 3 && palavra === palavra.toUpperCase()) {
+        return palavra;
+      }
+      return palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase();
+    })
+    .join(' ');
+  
+  return nomePadronizado;
+}
 
-  if (data.length === 0) {
-    console.log('Aviso: Nenhuma linha encontrada no Excel. Verifique o formato do arquivo.');
+function padronizarTelefone(telefone: string): string | undefined {
+  if (!telefone) return undefined;
+  
+  // Remove tudo exceto números e +
+  let telefoneLimpo = telefone.replace(/[^\d+]/g, '');
+  
+  // Se começa com +, mantém
+  if (telefoneLimpo.startsWith('+')) {
+    return telefoneLimpo;
+  }
+  
+  // Remove zeros à esquerda desnecessários
+  telefoneLimpo = telefoneLimpo.replace(/^0+/, '');
+  
+  // Se está vazio após limpeza, retorna undefined
+  if (telefoneLimpo.length === 0) {
+    return undefined;
+  }
+  
+  // Formata telefone brasileiro: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+  if (telefoneLimpo.length >= 10 && telefoneLimpo.length <= 11) {
+    const ddd = telefoneLimpo.substring(0, 2);
+    const numero = telefoneLimpo.substring(2);
+    
+    if (numero.length === 9) {
+      // Celular: (XX) XXXXX-XXXX
+      return `${ddd} ${numero.substring(0, 5)}-${numero.substring(5)}`;
+    } else if (numero.length === 8) {
+      // Fixo: (XX) XXXX-XXXX
+      return `${ddd} ${numero.substring(0, 4)}-${numero.substring(4)}`;
+    }
+  }
+  
+  // Se não couber no formato, retorna como está (pode ser internacional)
+  return telefoneLimpo;
+}
+
+async function extractCsv() {
+  console.log(`Procurando arquivo CSV em: ${csvPath}`);
+  
+  if (!existsSync(csvPath)) {
+    console.error(`Erro: Arquivo não encontrado em ${csvPath}`);
     return;
   }
 
-  console.log('Primeira linha (exemplo):', JSON.stringify(data[0], null, 2));
-
-  // Detectar nomes das colunas automaticamente
-  const allColumns = data.length > 0 && data[0] && typeof data[0] === 'object' 
-    ? Object.keys(data[0] as Record<string, unknown>) 
-    : [];
-  console.log('Colunas encontradas:', allColumns.join(', '));
-
-  // Procurar coluna de nome (case insensitive, contém "nome")
-  const nomeColumn = allColumns.find(col => 
-    col.toLowerCase().includes('nome')
-  ) || allColumns.find(col => 
-    ['Nome', 'nome', 'NOME', 'Nome completo', 'Nome Completo'].includes(col)
-  );
-
-  // Procurar coluna de telefone (case insensitive)
-  const telefoneColumn = allColumns.find(col => 
-    col.toLowerCase().includes('telefone') || col.toLowerCase().includes('tel')
-  ) || allColumns.find(col => 
-    ['Telefone', 'telefone', 'TELEFONE', 'Tel', 'tel'].includes(col)
-  );
-
-  console.log(`Coluna de nome detectada: ${nomeColumn || 'NÃO ENCONTRADA'}`);
-  console.log(`Coluna de telefone detectada: ${telefoneColumn || 'NÃO ENCONTRADA'}`);
-
-  if (!nomeColumn) {
-    console.error('Erro: Não foi possível encontrar uma coluna de nome. Colunas disponíveis:', allColumns.join(', '));
+  const fileContent = readFileSync(csvPath, 'utf-8');
+  const lines = fileContent.split('\n').filter(line => line.trim());
+  
+  if (lines.length < 2) {
+    console.log('Aviso: CSV vazio ou sem dados.');
     return;
   }
+
+  // Pula cabeçalho
+  const dataLines = lines.slice(1);
+  console.log(`Total de linhas lidas do CSV: ${dataLines.length}`);
 
   const database = getDb();
   const checkStmt = database.prepare('SELECT COUNT(*) as count FROM convidados');
@@ -67,22 +94,47 @@ async function extractExcel() {
 
   let imported = 0;
   let skipped = 0;
-  for (const row of data as any[]) {
-    const nome = row[nomeColumn] || '';
-    const telefone = telefoneColumn ? (row[telefoneColumn] || '') : '';
 
-    // Pular linhas que parecem ser cabeçalhos ou metadados
-    const nomeStr = nome ? nome.toString().trim() : '';
-    if (!nomeStr || 
-        nomeStr.toLowerCase().includes('data') || 
-        nomeStr.toLowerCase().includes('horário') ||
-        nomeStr.toLowerCase().includes('local') ||
-        nomeStr.length < 2) {
+  for (const line of dataLines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) {
       skipped++;
       continue;
     }
 
-    createConvidado(nomeStr, telefone ? telefone.toString().trim() : undefined);
+    // Parse CSV simples (considera vírgulas, mas trata nomes com vírgulas)
+    const parts = trimmedLine.split(',');
+    
+    if (parts.length < 1) {
+      skipped++;
+      continue;
+    }
+
+    // Nome é tudo antes da última vírgula (ou primeira se só tiver 2 partes)
+    // Telefone é a última parte
+    let nome = '';
+    let telefone = '';
+
+    if (parts.length === 2) {
+      nome = parts[0].trim();
+      telefone = parts[1].trim();
+    } else if (parts.length > 2) {
+      // Nome pode ter vírgulas, telefone é sempre a última parte
+      nome = parts.slice(0, -1).join(',').trim();
+      telefone = parts[parts.length - 1].trim();
+    } else {
+      nome = parts[0].trim();
+    }
+
+    const nomePadronizado = padronizarNome(nome);
+    
+    if (!nomePadronizado || nomePadronizado.length < 2) {
+      skipped++;
+      continue;
+    }
+
+    const telefonePadronizado = padronizarTelefone(telefone);
+    createConvidado(nomePadronizado, telefonePadronizado);
     imported++;
   }
 
@@ -92,5 +144,4 @@ async function extractExcel() {
   }
 }
 
-extractExcel().catch(console.error);
-
+extractCsv().catch(console.error);
