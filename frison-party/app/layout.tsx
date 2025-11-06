@@ -24,26 +24,19 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="light">
       <body>
-        <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <header className="bg-white border-b shadow-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-4">
+              <Link href="/" className="flex items-center gap-3">
                 <Image
                   src="/logo.svg"
-                  alt="Frison Convenience"
-                  width={180}
-                  height={40}
-                  className="h-10 w-auto"
+                  alt="Frison"
+                  width={150}
+                  height={35}
+                  className="h-8 w-auto"
                   priority
                 />
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-foreground">
-                    Festa de Aniversário
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    50 anos de Frison Convenience
-                  </p>
-                </div>
+                <span className="hidden sm:block text-sm text-gray-600">50 anos</span>
               </Link>
               <Navigation />
             </div>

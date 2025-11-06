@@ -7,24 +7,16 @@ export function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-6">
+    <nav className="flex gap-4">
       <Link
         href="/"
-        className={`text-sm font-medium transition-colors ${
-          pathname === '/'
-            ? 'text-primary border-b-2 border-primary pb-1'
-            : 'text-foreground hover:text-primary'
-        }`}
+        className={pathname === '/' ? 'text-red-600 font-semibold' : 'text-gray-600 hover:text-red-600'}
       >
-        Lista de Presença
+        Lista
       </Link>
       <Link
         href="/relatorios"
-        className={`text-sm font-medium transition-colors ${
-          pathname === '/relatorios'
-            ? 'text-primary border-b-2 border-primary pb-1'
-            : 'text-foreground hover:text-primary'
-        }`}
+        className={pathname === '/relatorios' ? 'text-red-600 font-semibold' : 'text-gray-600 hover:text-red-600'}
       >
         Relatórios
       </Link>

@@ -3,20 +3,15 @@
 @tailwind utilities;
 
 :root {
-  /* Light theme - Frison Convenience */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
-  --primary: 0 78% 48%; /* #E21C2A - Vermelho Frison */
+  --primary: 0 78% 48%;
   --primary-foreground: 0 0% 100%;
   --muted: 0 0% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 0 0% 97%;
-  --accent-foreground: 222.2 47.4% 11.2%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 0 78% 48%;
-  --success: 142 76% 36%;
-  --success-foreground: 0 0% 100%;
 }
 
 body {
