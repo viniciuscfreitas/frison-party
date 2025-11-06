@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { useEffect, useState } from 'react';
 
 interface Convidado {
   id: number;
@@ -23,9 +23,10 @@ export default function Home() {
         : '/api/convidados';
       const res = await fetch(url);
       const data = await res.json();
-      setConvidados(data);
+      setConvidados(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Erro ao buscar convidados:', error);
+      setConvidados([]);
     } finally {
       setLoading(false);
     }

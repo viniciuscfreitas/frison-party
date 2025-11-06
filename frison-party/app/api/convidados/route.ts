@@ -1,17 +1,14 @@
+import { createConvidado, getAllConvidados } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllConvidados, createConvidado } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || undefined;
     const convidados = getAllConvidados(search);
-    return NextResponse.json(convidados);
+    return NextResponse.json(Array.isArray(convidados) ? convidados : []);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erro ao buscar convidados' },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 });
   }
 }
 
