@@ -31,14 +31,26 @@ http://SEU_IP_VPS:30080
 
 ### Comandos úteis
 ```bash
+# Ver status dos containers
+docker compose ps
+
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
+
+# Ver últimos logs (útil após desconexão)
+docker compose logs --tail=50
+
+# Verificar se build foi concluído
+docker images | grep frison-party
 
 # Parar
-docker-compose down
+docker compose down
 
 # Reiniciar
-docker-compose restart
+docker compose restart
+
+# Verificar se aplicação está respondendo
+curl http://localhost:30080
 ```
 
 ---
@@ -118,6 +130,30 @@ cp data/convidados.db data/backup-$(date +%Y%m%d).db
 ```
 
 ---
+
+## Verificação após Desconexão
+
+Se a conexão cair durante o build:
+
+```bash
+# 1. Verificar status
+docker compose ps
+
+# 2. Se container não estiver rodando, verificar logs
+docker compose logs --tail=100
+
+# 3. Se build falhou, tentar novamente
+docker compose up -d --build
+
+# 4. Verificar se container está rodando
+docker compose ps
+
+# 5. Se estiver rodando, executar extração
+docker compose exec app sh -c "cd /app && npm run extract"
+
+# 6. Testar acesso
+curl http://localhost:30080
+```
 
 ## Troubleshooting
 
