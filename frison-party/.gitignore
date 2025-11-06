@@ -1,43 +1,66 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp/
 .pnp.js
 
-# testing
-/coverage
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
 
-# next.js
-/.next/
-/out/
+# Environment
+.env
+.env*.local
+.env.production
 
-# production
-/build
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+/data/
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# local env files
-.env*.local
-.env
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# vercel
-.vercel
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Testing
+coverage/
+.nyc_output/
 
-# database
-*.db
-*.db-journal
-/data
+# Misc
+*.pem
+.cache/
+.vercel/
+.turbo/
 
-
+# Sensitive data - CSV files with personal information
+*.csv
+dados/*.csv
+!dados/.gitkeep

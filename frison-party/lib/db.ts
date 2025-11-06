@@ -39,11 +39,6 @@ export function getAllConvidados(search?: string) {
   return stmt.all();
 }
 
-export function getConvidadoById(id: number) {
-  const database = getDb();
-  const stmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  return stmt.get(id);
-}
 
 export function createConvidado(nome: string, telefone?: string) {
   const database = getDb();
@@ -56,6 +51,7 @@ export function updateCheckIn(id: number, entrou: boolean) {
   const database = getDb();
   const stmt = database.prepare('UPDATE convidados SET entrou = ? WHERE id = ?');
   stmt.run(entrou ? 1 : 0, id);
-  return getConvidadoById(id);
+  const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
+  return getStmt.get(id);
 }
 
