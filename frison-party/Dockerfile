@@ -22,6 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 RUN mkdir -p /app/data /app/dados
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+RUN chown -R nextjs:nodejs /app/data /app/dados
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
