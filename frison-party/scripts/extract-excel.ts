@@ -29,7 +29,9 @@ async function extractExcel() {
   console.log('Primeira linha (exemplo):', JSON.stringify(data[0], null, 2));
 
   // Detectar nomes das colunas automaticamente
-  const allColumns = data.length > 0 ? Object.keys(data[0]) : [];
+  const allColumns = data.length > 0 && data[0] && typeof data[0] === 'object' 
+    ? Object.keys(data[0] as Record<string, unknown>) 
+    : [];
   console.log('Colunas encontradas:', allColumns.join(', '));
 
   // Procurar coluna de nome (case insensitive, contém "nome")
