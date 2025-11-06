@@ -50,7 +50,12 @@ export function createConvidado(nome: string, telefone?: string) {
 export function updateCheckIn(id: number, entrou: boolean) {
   const database = getDb();
   const stmt = database.prepare('UPDATE convidados SET entrou = ? WHERE id = ?');
-  stmt.run(entrou ? 1 : 0, id);
+  const result = stmt.run(entrou ? 1 : 0, id);
+  
+  if (result.changes === 0) {
+    return null;
+  }
+  
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
   return getStmt.get(id);
 }

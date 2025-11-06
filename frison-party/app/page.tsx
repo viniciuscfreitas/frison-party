@@ -23,14 +23,46 @@ export default function Home() {
   }, [search]);
 
   const handleCheckIn = async (id: number, entrou: boolean) => {
-    await fetch(`/api/convidados/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entrou: !entrou }),
-    });
+    // Atualização otimista: atualiza UI imediatamente
+    const novoEstado = entrou ? 0 : 1;
     setConvidados((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, entrou: entrou ? 0 : 1 } : c))
+      prev.map((c) => (c.id === id ? { ...c, entrou: novoEstado } : c))
     );
+    
+    try {
+      const response = await fetch(`/api/convidados/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entrou: !entrou }),
+      });
+      
+      if (!response.ok) {
+        // Se falhar, reverte a mudança e recarrega do servidor
+        const url = search ? `/api/convidados?search=${encodeURIComponent(search)}` : '/api/convidados';
+        const res = await fetch(url);
+        const data = await res.json();
+        setConvidados(Array.isArray(data) ? data : []);
+        throw new Error('Falha ao atualizar');
+      }
+      
+      // Atualiza com os dados do servidor para garantir sincronização
+      const updated = await response.json();
+      setConvidados((prev) =>
+        prev.map((c) => (c.id === id ? updated : c))
+      );
+    } catch (error) {
+      // Em caso de erro, recarrega tudo do servidor
+      const url = search ? `/api/convidados?search=${encodeURIComponent(search)}` : '/api/convidados';
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => setConvidados(Array.isArray(data) ? data : []))
+        .catch(() => {
+          // Reverte para o estado anterior se a requisição falhar
+          setConvidados((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, entrou: entrou ? 1 : 0 } : c))
+          );
+        });
+    }
   };
 
   const presentes = convidados.filter((c) => c.entrou === 1).length;
