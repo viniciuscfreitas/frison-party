@@ -1,0 +1,19 @@
+{
+  "name": "Lista de Convidados - Festa Frison",
+  "short_name": "Festa Frison",
+  "description": "Sistema de check-in para convidados",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
