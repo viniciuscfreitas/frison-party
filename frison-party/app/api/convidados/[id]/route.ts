@@ -1,3 +1,4 @@
+import { requireAuth } from '@/lib/auth';
 import { updateCheckIn } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -5,6 +6,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!requireAuth(request)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  }
+
   try {
     const id = parseInt(params.id);
     if (isNaN(id)) {
@@ -13,8 +18,8 @@ export async function PUT(
 
     const { entrou } = await request.json();
     const convidado = updateCheckIn(id, !!entrou);
-    
-    return convidado 
+
+    return convidado
       ? NextResponse.json(convidado)
       : NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
   } catch (error: any) {
