@@ -1,9 +1,24 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import { padronizarNome, padronizarTelefone } from '../lib/convidado-normalize';
+import { readFile, utils } from 'xlsx';
+import {
+  normalizarTotalConfirmados,
+  padronizarNome,
+  padronizarTelefone,
+} from '../lib/convidado-normalize';
 import { createConvidado, getDb } from '../lib/db';
 
 const csvPath = join(process.cwd(), 'dados', 'ListaOficial_FestaFrison.csv');
+
+const toString = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value.toString();
+  if (value === null || typeof value === 'undefined') return '';
+  return String(value);
+};
+
+const sanitize = (value: unknown): string =>
+  toString(value).replace(/^[\s,'"`]+|[\s,'"`]+$/g, '').trim();
 
 async function extractCsv() {
   console.log(`Procurando arquivo CSV em: ${csvPath}`);
@@ -13,17 +28,38 @@ async function extractCsv() {
     return;
   }
 
-  const fileContent = readFileSync(csvPath, 'utf-8');
-  const lines = fileContent.split('\n').filter(line => line.trim());
+  const workbook = readFile(csvPath, { codepage: 65001 });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    console.error('Erro: CSV sem planilha válida.');
+    return;
+  }
 
-  if (lines.length < 2) {
+  const sheet = workbook.Sheets[sheetName];
+  const rows = utils.sheet_to_json<(string | number)[]>(sheet, {
+    header: 1,
+    blankrows: false,
+    defval: '',
+  });
+
+  if (rows.length === 0) {
     console.log('Aviso: CSV vazio ou sem dados.');
     return;
   }
 
-  // Pula cabeçalho
-  const dataLines = lines.slice(1);
-  console.log(`Total de linhas lidas do CSV: ${dataLines.length}`);
+  const headerIndex = rows.findIndex((row) => {
+    const numero = sanitize(row[1]).toLowerCase();
+    const nome = sanitize(row[2]).toLowerCase();
+    return numero.startsWith('n') && nome.startsWith('nome');
+  });
+
+  if (headerIndex === -1) {
+    console.error('Erro: Cabeçalho não encontrado no CSV.');
+    return;
+  }
+
+  const dataRows = rows.slice(headerIndex + 1);
+  console.log(`Total de linhas lidas do CSV: ${dataRows.length}`);
 
   const database = getDb();
   const checkStmt = database.prepare('SELECT COUNT(*) as count FROM convidados');
@@ -37,46 +73,27 @@ async function extractCsv() {
   let imported = 0;
   let skipped = 0;
 
-  for (const line of dataLines) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine) {
+  for (const row of dataRows) {
+    const nomeBruto = sanitize(row[2]);
+    if (!nomeBruto || /^total/i.test(nomeBruto)) {
       skipped++;
       continue;
     }
 
-    // Parse CSV simples (considera vírgulas, mas trata nomes com vírgulas)
-    const parts = trimmedLine.split(',');
+    const telefoneBruto = sanitize(row[3]);
+    const totalRaw = sanitize(row[7]);
 
-    if (parts.length < 1) {
-      skipped++;
-      continue;
-    }
-
-    // Nome é tudo antes da última vírgula (ou primeira se só tiver 2 partes)
-    // Telefone é a última parte
-    let nome = '';
-    let telefone = '';
-
-    if (parts.length === 2) {
-      nome = parts[0].trim();
-      telefone = parts[1].trim();
-    } else if (parts.length > 2) {
-      // Nome pode ter vírgulas, telefone é sempre a última parte
-      nome = parts.slice(0, -1).join(',').trim();
-      telefone = parts[parts.length - 1].trim();
-    } else {
-      nome = parts[0].trim();
-    }
-
-    const nomePadronizado = padronizarNome(nome);
+    const nomePadronizado = padronizarNome(nomeBruto);
 
     if (!nomePadronizado || nomePadronizado.length < 2) {
       skipped++;
       continue;
     }
 
-    const telefonePadronizado = padronizarTelefone(telefone);
-    createConvidado(nomePadronizado, telefonePadronizado, 1);
+    const telefonePadronizado = padronizarTelefone(telefoneBruto || undefined);
+    const totalConfirmados = normalizarTotalConfirmados(totalRaw);
+
+    createConvidado(nomePadronizado, telefonePadronizado, totalConfirmados);
     imported++;
   }
 
