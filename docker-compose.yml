@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "30080:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/convidados.db
+    volumes:
+      - ./data:/app/data
+      - ./dados:/app/dados
+    restart: unless-stopped
+
