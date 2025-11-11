@@ -31,6 +31,8 @@ const ConvidadosApp = () => {
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
   const [editando, setEditando] = useState(false)
   const [excluindoId, setExcluindoId] = useState<number | null>(null)
+  const [deleteModalAberto, setDeleteModalAberto] = useState(false)
+  const [convidadoParaExcluir, setConvidadoParaExcluir] = useState<Convidado | null>(null)
 
   useEffect(() => {
     const url = search
@@ -168,11 +170,6 @@ const ConvidadosApp = () => {
   }
 
   const handleExcluirConvidado = async (id: number) => {
-    const confirmado = window.confirm('Tem certeza que deseja excluir este convidado?')
-    if (!confirmado) {
-      return
-    }
-
     setExcluindoId(id)
     try {
       const response = await fetch(`/api/convidados/${id}`, {
@@ -184,6 +181,8 @@ const ConvidadosApp = () => {
       }
 
       setConvidados((prev) => prev.filter((c) => c.id !== id))
+      setDeleteModalAberto(false)
+      setConvidadoParaExcluir(null)
     } catch (error) {
       console.error(error)
       alert('Não foi possível excluir o convidado. Tente novamente.')
@@ -408,19 +407,22 @@ const ConvidadosApp = () => {
               </div>
               <div className="flex flex-col items-end gap-1">
                 {c.entrou === 1 && <span className="text-green-600 text-sm">Presente</span>}
-                <div className="flex gap-3 text-xs">
+                <div className="flex gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => abrirModalEdicao(c)}
-                    className="text-blue-600 transition hover:underline"
+                    className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600 transition hover:bg-blue-100"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleExcluirConvidado(c.id)}
+                    onClick={() => {
+                      setConvidadoParaExcluir(c)
+                      setDeleteModalAberto(true)
+                    }}
                     disabled={excluindoId === c.id}
-                    className="text-red-600 transition hover:underline disabled:opacity-60"
+                    className="rounded-md border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-60"
                   >
                     {excluindoId === c.id ? 'Excluindo...' : 'Excluir'}
                   </button>
@@ -508,6 +510,56 @@ const ConvidadosApp = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteModalAberto && convidadoParaExcluir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-red-600">Excluir convidado</h2>
+                <p className="text-sm text-gray-500">
+                  Esta ação não pode ser desfeita. Confirme para remover {convidadoParaExcluir.nome} da
+                  lista.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteModalAberto(false)
+                  setConvidadoParaExcluir(null)
+                }}
+                className="text-sm text-gray-500 transition hover:text-gray-700"
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
+                Você tem certeza que deseja excluir este convidado?
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteModalAberto(false)
+                    setConvidadoParaExcluir(null)
+                  }}
+                  className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => convidadoParaExcluir && handleExcluirConvidado(convidadoParaExcluir.id)}
+                  disabled={excluindoId === convidadoParaExcluir.id}
+                  className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+                >
+                  {excluindoId === convidadoParaExcluir.id ? 'Excluindo...' : 'Confirmar exclusão'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
