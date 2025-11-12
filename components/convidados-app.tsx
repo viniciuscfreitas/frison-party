@@ -2,7 +2,7 @@
 
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 
 interface Convidado {
   id: number
@@ -33,29 +33,34 @@ const ConvidadosApp = () => {
   const [excluindoId, setExcluindoId] = useState<number | null>(null)
   const [deleteModalAberto, setDeleteModalAberto] = useState(false)
   const [convidadoParaExcluir, setConvidadoParaExcluir] = useState<Convidado | null>(null)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [touchStartY, setTouchStartY] = useState<number | null>(null)
 
-  useEffect(() => {
+  const carregarConvidados = useCallback(async () => {
     const url = search
       ? `/api/convidados?search=${encodeURIComponent(search)}`
       : '/api/convidados'
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) =>
-        setConvidados(
-          Array.isArray(data)
-            ? data.map((item: any) => ({
-                ...item,
-                entrou: item.entrou === 1 ? 1 : 0,
-                total_confirmados: Math.max(1, Number(item.total_confirmados) || 1),
-                acompanhantes_presentes: Math.max(
-                  0,
-                  Number(item.acompanhantes_presentes ?? 0) || 0
-                ),
-              }))
-            : []
-        )
-      )
+    const res = await fetch(url)
+    const data = await res.json()
+    setConvidados(
+      Array.isArray(data)
+        ? data.map((item: any) => ({
+            ...item,
+            entrou: item.entrou === 1 ? 1 : 0,
+            total_confirmados: Math.max(1, Number(item.total_confirmados) || 1),
+            acompanhantes_presentes: Math.max(
+              0,
+              Number(item.acompanhantes_presentes ?? 0) || 0
+            ),
+          }))
+        : []
+    )
   }, [search])
+
+  useEffect(() => {
+    carregarConvidados()
+  }, [carregarConvidados])
 
   const handleAdicionarConvidado = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -309,9 +314,72 @@ const ConvidadosApp = () => {
   )
   const totalPresentes = convidadosPresentes + acompanhantesPresentes
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 0 && touchStartY !== null) {
+        setTouchStartY(null)
+        setPullDistance(0)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [touchStartY])
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      setTouchStartY(e.touches[0].clientY)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY === null || window.scrollY > 0) return
+
+    const currentY = e.touches[0].clientY
+    const distance = Math.max(0, currentY - touchStartY)
+    const maxDistance = 80
+
+    if (distance > 0) {
+      e.preventDefault()
+      setPullDistance(Math.min(distance, maxDistance))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (pullDistance >= 60 && !isRefreshing) {
+      setIsRefreshing(true)
+      carregarConvidados().finally(() => {
+        setIsRefreshing(false)
+        setPullDistance(0)
+      })
+    } else {
+      setPullDistance(0)
+    }
+    setTouchStartY(null)
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div
+      className="min-h-screen bg-gray-50 p-4 relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {pullDistance > 0 && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center bg-gray-50 transition-transform duration-200"
+          style={{ transform: `translateY(${pullDistance}px)`, height: '60px' }}
+        >
+          {isRefreshing ? (
+            <span className="text-sm text-gray-600">Atualizando...</span>
+          ) : pullDistance >= 60 ? (
+            <span className="text-sm text-gray-600">Solte para atualizar</span>
+          ) : (
+            <span className="text-sm text-gray-400">Puxe para atualizar</span>
+          )}
+        </div>
+      )}
+      <div className="max-w-4xl mx-auto" style={{ marginTop: pullDistance > 0 ? `${pullDistance}px` : '0' }}>
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
