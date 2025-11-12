@@ -6,31 +6,33 @@ import {
 } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   if (!requireAuth(request)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401, headers: JSON_HEADERS });
   }
 
   try {
     const id = parseInt(params.id);
     if (isNaN(id)) {
-      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400, headers: JSON_HEADERS });
     }
 
     const { entrou, acompanhantesPresentes } = await request.json();
     if (typeof entrou === 'undefined' && typeof acompanhantesPresentes === 'undefined') {
       return NextResponse.json(
         { error: 'Nenhum campo para atualizar informado.' },
-        { status: 400 }
+        { status: 400, headers: JSON_HEADERS }
       );
     }
 
     const entrouValue = typeof entrou === 'boolean' ? entrou : undefined;
     if (typeof entrouValue === 'undefined') {
-      return NextResponse.json({ error: 'Campo "entrou" obrigatório.' }, { status: 400 });
+      return NextResponse.json({ error: 'Campo "entrou" obrigatório.' }, { status: 400, headers: JSON_HEADERS });
     }
 
     const acompanhanteNumber =
@@ -41,15 +43,15 @@ export async function PUT(
     const convidado = updateConvidadoStatus(id, entrouValue, acompanhanteNumber);
 
     return convidado
-      ? NextResponse.json(convidado)
-      : NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+      ? NextResponse.json(convidado, { headers: JSON_HEADERS })
+      : NextResponse.json({ error: 'Não encontrado' }, { status: 404, headers: JSON_HEADERS });
   } catch (error: any) {
     // SQLite com WAL mode lida bem com concorrência
     // Se realmente tiver problema, usuário pode tentar novamente
     console.error('Erro ao atualizar check-in:', error);
     return NextResponse.json(
       { error: 'Erro ao atualizar. Tente novamente.' },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     );
   }
 }
@@ -59,13 +61,13 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   if (!requireAuth(request)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401, headers: JSON_HEADERS });
   }
 
   try {
     const id = parseInt(params.id);
     if (isNaN(id)) {
-      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400, headers: JSON_HEADERS });
     }
 
     const payload = await request.json();
@@ -79,10 +81,10 @@ export async function PATCH(
           ? undefined
           : null;
     if (nome === null) {
-      return NextResponse.json({ error: 'Nome inválido.' }, { status: 400 });
+      return NextResponse.json({ error: 'Nome inválido.' }, { status: 400, headers: JSON_HEADERS });
     }
     if (typeof nome !== 'undefined' && nome.length === 0) {
-      return NextResponse.json({ error: 'Nome não pode ser vazio.' }, { status: 400 });
+      return NextResponse.json({ error: 'Nome não pode ser vazio.' }, { status: 400, headers: JSON_HEADERS });
     }
 
     let telefone: string | null | undefined;
@@ -94,23 +96,23 @@ export async function PATCH(
     } else if (typeof telefoneRaw === 'undefined') {
       telefone = undefined;
     } else {
-      return NextResponse.json({ error: 'Telefone inválido.' }, { status: 400 });
+      return NextResponse.json({ error: 'Telefone inválido.' }, { status: 400, headers: JSON_HEADERS });
     }
 
     if (typeof nome === 'undefined' && typeof telefone === 'undefined') {
       return NextResponse.json(
         { error: 'Nenhum campo para atualizar informado.' },
-        { status: 400 }
+        { status: 400, headers: JSON_HEADERS }
       );
     }
 
     const convidado = updateConvidadoInfo(id, nome, telefone);
 
     if (!convidado) {
-      return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Não encontrado' }, { status: 404, headers: JSON_HEADERS });
     }
 
-    return NextResponse.json(convidado);
+    return NextResponse.json(convidado, { headers: JSON_HEADERS });
   } catch (error: any) {
     console.error('Erro ao atualizar convidado:', error);
     const mensagem =
@@ -119,7 +121,7 @@ export async function PATCH(
       mensagem === 'Nome inválido.' || mensagem === 'Nenhum campo informado para atualizar.'
         ? 400
         : 500;
-    return NextResponse.json({ error: mensagem }, { status });
+    return NextResponse.json({ error: mensagem }, { status, headers: JSON_HEADERS });
   }
 }
 
@@ -128,25 +130,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   if (!requireAuth(request)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401, headers: JSON_HEADERS });
   }
 
   try {
     const id = parseInt(params.id);
     if (isNaN(id)) {
-      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400, headers: JSON_HEADERS });
     }
 
     const removido = deleteConvidado(id);
 
     if (!removido) {
-      return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Não encontrado' }, { status: 404, headers: JSON_HEADERS });
     }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Erro ao remover convidado:', error);
-    return NextResponse.json({ error: 'Erro ao remover convidado.' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao remover convidado.' }, { status: 500, headers: JSON_HEADERS });
   }
 }
 

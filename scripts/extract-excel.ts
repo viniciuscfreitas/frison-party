@@ -1,11 +1,12 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { readFile, utils } from 'xlsx';
+import { read, utils } from 'xlsx';
 import {
   normalizarTotalConfirmados,
   padronizarNome,
   padronizarTelefone,
 } from '../lib/convidado-normalize';
+import { readCsvAsUtf8 } from '../lib/encoding';
 import { createConvidado, getDb } from '../lib/db';
 
 const csvPath = join(process.cwd(), 'dados', 'ListaOficial_FestaFrison.csv');
@@ -28,7 +29,10 @@ async function extractCsv() {
     return;
   }
 
-  const workbook = readFile(csvPath, { codepage: 65001 });
+  const utf8Buffer = readCsvAsUtf8(csvPath);
+  console.log('Arquivo convertido para UTF-8');
+  
+  const workbook = read(utf8Buffer, { type: 'buffer', codepage: 65001 });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     console.error('Erro: CSV sem planilha válida.');

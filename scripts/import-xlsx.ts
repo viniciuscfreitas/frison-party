@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
 import XLSX from 'xlsx';
 import { createConvidado, getDb } from '../lib/db';
+import { readCsvAsUtf8 } from '../lib/encoding';
 import {
   normalizarTotalConfirmados,
   padronizarNome,
@@ -83,7 +84,17 @@ async function main() {
     throw new Error(`Arquivo não encontrado: ${inputPath}`);
   }
 
-  const workbook = XLSX.readFile(inputPath);
+  const isCsv = inputPath.toLowerCase().endsWith('.csv');
+  
+  let workbook: XLSX.WorkBook;
+  if (isCsv) {
+    const utf8Buffer = readCsvAsUtf8(inputPath);
+    console.log('Arquivo CSV convertido para UTF-8');
+    workbook = XLSX.read(utf8Buffer, { type: 'buffer', codepage: 65001 });
+  } else {
+    workbook = XLSX.readFile(inputPath);
+  }
+  
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][];
 
