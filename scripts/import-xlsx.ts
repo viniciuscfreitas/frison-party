@@ -90,7 +90,8 @@ async function main() {
   if (isCsv) {
     const utf8Buffer = readCsvAsUtf8(inputPath);
     console.log('Arquivo CSV convertido para UTF-8');
-    workbook = XLSX.read(utf8Buffer, { type: 'buffer', codepage: 65001 });
+    const binaryString = utf8Buffer.toString('binary');
+    workbook = XLSX.read(binaryString, { type: 'binary' });
   } else {
     workbook = XLSX.readFile(inputPath);
   }

@@ -32,7 +32,8 @@ async function extractCsv() {
   const utf8Buffer = readCsvAsUtf8(csvPath);
   console.log('Arquivo convertido para UTF-8');
   
-  const workbook = read(utf8Buffer, { type: 'buffer', codepage: 65001 });
+  const binaryString = utf8Buffer.toString('binary');
+  const workbook = read(binaryString, { type: 'binary' });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     console.error('Erro: CSV sem planilha válida.');
