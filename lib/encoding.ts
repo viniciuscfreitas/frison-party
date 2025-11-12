@@ -40,61 +40,33 @@ export function readCsvAsUtf8(filePath: string): Buffer {
   return convertToUtf8(buffer);
 }
 
-export function normalizeStringFromDb(value: unknown): string {
-  if (typeof value !== 'string') {
-    return String(value ?? '');
-  }
-  
-  if (!value) {
-    return '';
-  }
+export function fixLegacyEncoding(value: string): string {
+  if (!value) return value;
   
   try {
     const bytes = Buffer.from(value, 'latin1');
-    const decoded = iconv.decode(bytes, 'windows1252');
-    
-    if (decoded === value) {
-      return value;
-    }
-    
-    if (/[\uFFFD]/.test(decoded)) {
-      return value;
-    }
-    
-    const utf8Bytes = Buffer.from(decoded, 'utf8');
-    const originalUtf8Bytes = Buffer.from(value, 'utf8');
-    
-    if (!bytes.equals(originalUtf8Bytes) && !bytes.equals(utf8Bytes)) {
-      return decoded;
-    }
-    
-    return value;
+    const fixed = iconv.decode(bytes, 'windows1252');
+    return fixed !== value ? fixed : value;
   } catch {
     return value;
   }
 }
 
-export function normalizeConvidadoFromDb(convidado: {
-  id: number;
-  nome: string;
-  telefone: string | null;
-  entrou: number;
-  total_confirmados: number;
-  acompanhantes_presentes: number;
-  created_at: string;
-}): {
-  id: number;
-  nome: string;
-  telefone: string | null;
-  entrou: number;
-  total_confirmados: number;
-  acompanhantes_presentes: number;
-  created_at: string;
-} {
+export function normalizeConvidadoFromDb(convidado: Convidado): Convidado {
   return {
     ...convidado,
-    nome: normalizeStringFromDb(convidado.nome),
-    telefone: convidado.telefone ? normalizeStringFromDb(convidado.telefone) : null,
+    nome: fixLegacyEncoding(convidado.nome),
+    telefone: convidado.telefone ? fixLegacyEncoding(convidado.telefone) : null,
   };
+}
+
+export interface Convidado {
+  id: number;
+  nome: string;
+  telefone: string | null;
+  entrou: number;
+  total_confirmados: number;
+  acompanhantes_presentes: number;
+  created_at: string;
 }
 

@@ -1,21 +1,13 @@
 import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
-import { normalizeConvidadoFromDb } from './encoding';
+import { normalizeConvidadoFromDb, type Convidado } from './encoding';
 
 const dbPath = process.env.DATABASE_PATH || join(process.cwd(), 'data', 'convidados.db');
 
 let db: Database.Database | null = null;
 
-export interface Convidado {
-  id: number;
-  nome: string;
-  telefone: string | null;
-  entrou: number;
-  total_confirmados: number;
-  acompanhantes_presentes: number;
-  created_at: string;
-}
+export type { Convidado };
 
 export function getDb(): Database.Database {
   if (db) return db;
