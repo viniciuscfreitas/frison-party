@@ -29,7 +29,7 @@ const LoginForm = () => {
       }
 
       const data = await response.json().catch(() => ({}))
-      setError(typeof data?.error === 'string' ? data.error : 'Falha ao autenticar')
+      setError(data && typeof data.error === 'string' ? data.error : 'Falha ao autenticar')
     } catch (err) {
       console.error('Erro no login:', err)
       setError('Falha ao autenticar')

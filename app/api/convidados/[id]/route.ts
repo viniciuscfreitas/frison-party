@@ -62,8 +62,8 @@ export async function PATCH(
     }
 
     const payload = await request.json();
-    const nomeRaw = payload?.nome;
-    const telefoneRaw = payload?.telefone;
+    const nomeRaw = payload && payload.nome;
+    const telefoneRaw = payload && payload.telefone;
 
     const nome =
       typeof nomeRaw === 'string'

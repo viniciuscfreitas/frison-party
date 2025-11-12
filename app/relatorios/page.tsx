@@ -30,7 +30,7 @@ export default function RelatoriosPage() {
                 total_confirmados: Math.max(1, Number(item.total_confirmados) || 1),
                 acompanhantes_presentes: Math.max(
                   0,
-                  Number(item.acompanhantes_presentes ?? 0) || 0
+                  Number(item.acompanhantes_presentes != null ? item.acompanhantes_presentes : 0) || 0
                 ),
               }))
             : []

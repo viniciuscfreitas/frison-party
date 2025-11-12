@@ -51,7 +51,7 @@ const ConvidadosApp = () => {
             total_confirmados: Math.max(1, Number(item.total_confirmados) || 1),
             acompanhantes_presentes: Math.max(
               0,
-              Number(item.acompanhantes_presentes ?? 0) || 0
+              Number(item.acompanhantes_presentes != null ? item.acompanhantes_presentes : 0) || 0
             ),
           }))
         : []
@@ -114,7 +114,7 @@ const ConvidadosApp = () => {
   const abrirModalEdicao = (convidado: Convidado) => {
     setConvidadoEditando(convidado)
     setEditNome(convidado.nome)
-    setEditTelefone(convidado.telefone ?? '')
+    setEditTelefone(convidado.telefone != null ? convidado.telefone : '')
     setErroEdicao(null)
     setEditModalAberto(true)
   }
@@ -200,7 +200,7 @@ const ConvidadosApp = () => {
     ...dados,
     entrou: dados.entrou === 1 || dados.entrou === true ? 1 : 0,
     total_confirmados: Math.max(1, Number(dados.total_confirmados) || 1),
-    acompanhantes_presentes: Math.max(0, Number(dados.acompanhantes_presentes ?? 0) || 0),
+    acompanhantes_presentes: Math.max(0, Number(dados.acompanhantes_presentes != null ? dados.acompanhantes_presentes : 0) || 0),
   })
 
   const handleCheckIn = async (convidado: Convidado) => {
@@ -410,12 +410,14 @@ const ConvidadosApp = () => {
               <div className="flex-1">
                 <div className="font-medium">{c.nome}</div>
                 {c.telefone && <div className="text-sm text-gray-500">{c.telefone}</div>}
-                {Math.max(1, c.total_confirmados ?? 1) > 1 && (
-                  <div className="text-xs text-gray-400">
-                    {Math.max(1, c.total_confirmados ?? 1) - 1} acompanhante
-                    {Math.max(1, c.total_confirmados ?? 1) - 1 === 1 ? '' : 's'}
-                  </div>
-                )}
+                {(() => {
+                  const total = Math.max(1, c.total_confirmados != null ? c.total_confirmados : 1)
+                  return total > 1 && (
+                    <div className="text-xs text-gray-400">
+                      {total - 1} acompanhante{total - 1 === 1 ? '' : 's'}
+                    </div>
+                  )
+                })()}
               </div>
               <div className="flex items-center gap-2">
                 <button

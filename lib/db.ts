@@ -61,7 +61,7 @@ export function getAllConvidados(search?: string): Convidado[] {
   const database = getDb();
 
   let results: Convidado[];
-  if (search?.trim()) {
+  if (search && typeof search === 'string' && search.trim()) {
     const stmt = database.prepare(`
       SELECT * FROM convidados
       WHERE nome LIKE ? OR telefone LIKE ?
@@ -86,7 +86,8 @@ export function createConvidado(
   const stmt = database.prepare(
     'INSERT INTO convidados (nome, telefone, total_confirmados, acompanhantes_presentes) VALUES (?, ?, ?, 0)'
   );
-  const result = stmt.run(nome.trim(), telefone?.trim() || null, Math.max(1, totalConfirmados));
+  const telefoneTrimmed = telefone && typeof telefone === 'string' ? telefone.trim() : null;
+  const result = stmt.run(nome.trim(), telefoneTrimmed, Math.max(1, totalConfirmados));
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
   return getStmt.get(result.lastInsertRowid) as Convidado;

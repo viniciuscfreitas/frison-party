@@ -75,7 +75,8 @@ const parseToken = (token: string | undefined): SessionPayload | null => {
 export const verifySessionToken = (token: string | undefined) => parseToken(token)
 
 export const requireAuth = (request: NextRequest) => {
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
+  const cookie = request.cookies.get(SESSION_COOKIE_NAME)
+  const token = cookie ? cookie.value : undefined
   return verifySessionToken(token)
 }
 

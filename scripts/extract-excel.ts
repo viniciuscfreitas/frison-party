@@ -28,8 +28,8 @@ async function extractCsv() {
   }
 
   const headerIndex = rows.findIndex((row) => {
-    const numero = row[1]?.toLowerCase().trim() || '';
-    const nome = row[2]?.toLowerCase().trim() || '';
+    const numero = row[1] && typeof row[1] === 'string' ? row[1].toLowerCase().trim() : '';
+    const nome = row[2] && typeof row[2] === 'string' ? row[2].toLowerCase().trim() : '';
     return numero.startsWith('n') && nome.startsWith('nome');
   });
 

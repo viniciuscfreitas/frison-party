@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { nome, telefone, totalConfirmados } = await request.json();
-    if (!nome?.trim()) {
+    if (!nome || typeof nome !== 'string' || !nome.trim()) {
       return NextResponse.json({ error: 'Nome obrigatório' }, { 
         status: 400,
         headers: JSON_HEADERS,
@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
     }
     const total = Number.isFinite(totalConfirmados) ? Number(totalConfirmados) : 1;
     const convidadosTotal = total > 0 ? Math.floor(total) : 1;
-    const convidado = createConvidado(nome.trim(), telefone?.trim(), convidadosTotal);
+    const telefoneTrimmed = telefone && typeof telefone === 'string' ? telefone.trim() : undefined;
+    const convidado = createConvidado(nome.trim(), telefoneTrimmed, convidadosTotal);
     return NextResponse.json(convidado, { 
       status: 201,
       headers: JSON_HEADERS,

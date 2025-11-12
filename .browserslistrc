@@ -1,0 +1,9 @@
+# Compatibilidade com iOS 12.5.7 (Safari 12)
+# Suporta navegadores desde 2018
+> 0.5%
+last 2 versions
+iOS >= 12
+Safari >= 12
+not dead
+not op_mini all
+

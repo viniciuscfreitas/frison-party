@@ -4,7 +4,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 const Home = () => {
-  const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value
+  const sessionCookie = cookies().get(SESSION_COOKIE_NAME)
+  const sessionToken = sessionCookie ? sessionCookie.value : undefined
   if (!hasValidSessionCookie(sessionToken)) {
     redirect('/login')
   }
