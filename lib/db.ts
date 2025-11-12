@@ -1,13 +1,20 @@
 import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
-import { normalizeConvidadoFromDb, type Convidado } from './encoding';
+
+export interface Convidado {
+  id: number;
+  nome: string;
+  telefone: string | null;
+  entrou: number;
+  total_confirmados: number;
+  acompanhantes_presentes: number;
+  created_at: string;
+}
 
 const dbPath = process.env.DATABASE_PATH || join(process.cwd(), 'data', 'convidados.db');
 
 let db: Database.Database | null = null;
-
-export type { Convidado };
 
 export function getDb(): Database.Database {
   if (db) return db;
@@ -66,7 +73,7 @@ export function getAllConvidados(search?: string): Convidado[] {
     results = stmt.all() as Convidado[];
   }
 
-  return results.map((convidado) => normalizeConvidadoFromDb(convidado));
+  return results;
 }
 
 export function createConvidado(
@@ -81,8 +88,7 @@ export function createConvidado(
   const result = stmt.run(nome.trim(), telefone?.trim() || null, Math.max(1, totalConfirmados));
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  const convidado = getStmt.get(result.lastInsertRowid) as Convidado;
-  return normalizeConvidadoFromDb(convidado);
+  return getStmt.get(result.lastInsertRowid) as Convidado;
 }
 
 export function updateConvidadoStatus(
@@ -107,8 +113,7 @@ export function updateConvidadoStatus(
   }
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  const convidado = getStmt.get(id) as Convidado;
-  return normalizeConvidadoFromDb(convidado);
+  return getStmt.get(id) as Convidado;
 }
 
 export function updateConvidadoInfo(
@@ -150,8 +155,7 @@ export function updateConvidadoInfo(
   }
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  const convidado = getStmt.get(id) as Convidado;
-  return normalizeConvidadoFromDb(convidado);
+  return getStmt.get(id) as Convidado;
 }
 
 export function deleteConvidado(id: number): boolean {

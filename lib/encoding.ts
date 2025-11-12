@@ -40,33 +40,3 @@ export function readCsvAsUtf8(filePath: string): Buffer {
   return convertToUtf8(buffer);
 }
 
-export function fixLegacyEncoding(value: string): string {
-  if (!value) return value;
-  
-  try {
-    const bytes = Buffer.from(value, 'latin1');
-    const fixed = iconv.decode(bytes, 'windows1252');
-    return fixed !== value ? fixed : value;
-  } catch {
-    return value;
-  }
-}
-
-export function normalizeConvidadoFromDb(convidado: Convidado): Convidado {
-  return {
-    ...convidado,
-    nome: fixLegacyEncoding(convidado.nome),
-    telefone: convidado.telefone ? fixLegacyEncoding(convidado.telefone) : null,
-  };
-}
-
-export interface Convidado {
-  id: number;
-  nome: string;
-  telefone: string | null;
-  entrou: number;
-  total_confirmados: number;
-  acompanhantes_presentes: number;
-  created_at: string;
-}
-
