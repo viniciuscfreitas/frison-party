@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
+import { normalizeConvidadoFromDb } from './encoding';
 
 const dbPath = process.env.DATABASE_PATH || join(process.cwd(), 'data', 'convidados.db');
 
@@ -59,6 +60,7 @@ export function getDb(): Database.Database {
 export function getAllConvidados(search?: string): Convidado[] {
   const database = getDb();
 
+  let results: Convidado[];
   if (search?.trim()) {
     const stmt = database.prepare(`
       SELECT * FROM convidados
@@ -66,11 +68,13 @@ export function getAllConvidados(search?: string): Convidado[] {
       ORDER BY nome ASC
     `);
     const searchTerm = `%${search.trim()}%`;
-    return stmt.all(searchTerm, searchTerm) as Convidado[];
+    results = stmt.all(searchTerm, searchTerm) as Convidado[];
+  } else {
+    const stmt = database.prepare('SELECT * FROM convidados ORDER BY nome ASC');
+    results = stmt.all() as Convidado[];
   }
 
-  const stmt = database.prepare('SELECT * FROM convidados ORDER BY nome ASC');
-  return stmt.all() as Convidado[];
+  return results.map((convidado) => normalizeConvidadoFromDb(convidado));
 }
 
 export function createConvidado(
@@ -85,7 +89,8 @@ export function createConvidado(
   const result = stmt.run(nome.trim(), telefone?.trim() || null, Math.max(1, totalConfirmados));
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  return getStmt.get(result.lastInsertRowid) as Convidado;
+  const convidado = getStmt.get(result.lastInsertRowid) as Convidado;
+  return normalizeConvidadoFromDb(convidado);
 }
 
 export function updateConvidadoStatus(
@@ -110,7 +115,8 @@ export function updateConvidadoStatus(
   }
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  return getStmt.get(id) as Convidado;
+  const convidado = getStmt.get(id) as Convidado;
+  return normalizeConvidadoFromDb(convidado);
 }
 
 export function updateConvidadoInfo(
@@ -152,7 +158,8 @@ export function updateConvidadoInfo(
   }
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
-  return getStmt.get(id) as Convidado;
+  const convidado = getStmt.get(id) as Convidado;
+  return normalizeConvidadoFromDb(convidado);
 }
 
 export function deleteConvidado(id: number): boolean {
