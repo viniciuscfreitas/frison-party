@@ -206,7 +206,6 @@ const ConvidadosApp = () => {
   const handleCheckIn = async (convidado: Convidado) => {
     let estadoAnterior: Convidado[] = []
     const novoEntrou = convidado.entrou === 1 ? 0 : 1
-    const acompanhantesQuandoSai = novoEntrou === 1 ? convidado.acompanhantes_presentes : 0
     setConvidados((prev) => {
       estadoAnterior = prev.map((c) => ({ ...c }))
       return prev.map((c) =>
@@ -226,7 +225,6 @@ const ConvidadosApp = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entrou: novoEntrou === 1,
-          acompanhantesPresentes: acompanhantesQuandoSai,
         }),
       })
 
@@ -243,61 +241,37 @@ const ConvidadosApp = () => {
   }
 
   const atualizarAcompanhantes = async (id: number, delta: number) => {
-    let estadoAnterior: Convidado[] = []
-    let novoValor = 0
-    let entrouAtual = false
-
-    setErroAcompanhantes(null)
-
-    setConvidados((prev) => {
-      const alvo = prev.find((c) => c.id === id)
-      if (!alvo) {
-        return prev
-      }
-
-      if (alvo.entrou !== 1 && delta > 0) {
-        setErroAcompanhantes('Marque o convidado como presente antes de adicionar acompanhantes.')
-        return prev
-      }
-
-      const calculado = Math.max(0, alvo.acompanhantes_presentes + delta)
-      if (calculado === alvo.acompanhantes_presentes) {
-        return prev
-      }
-
-      estadoAnterior = prev.map((c) => ({ ...c }))
-      novoValor = calculado
-      entrouAtual = alvo.entrou === 1
-
-      return prev.map((c) =>
-        c.id === id ? { ...c, acompanhantes_presentes: calculado } : c
-      )
-    })
-
-    if (!estadoAnterior.length) {
+    const alvo = convidados.find((c) => c.id === id)
+    if (!alvo) {
       return
     }
 
+    if (alvo.entrou !== 1 && delta > 0) {
+      setErroAcompanhantes('Marque o convidado como presente antes de adicionar acompanhantes.')
+      return
+    }
+
+    setErroAcompanhantes(null)
+
     try {
-      const response = await fetch(`/api/convidados/${id}`, {
-        method: 'PUT',
+      const response = await fetch(`/api/convidados/${id}/acompanhantes`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entrou: entrouAtual,
-          acompanhantesPresentes: novoValor,
-        }),
+        body: JSON.stringify({ delta }),
       })
 
       if (!response.ok) {
-        throw new Error('Falha ao atualizar acompanhantes')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Falha ao atualizar acompanhantes')
       }
 
       const atualizado = normalizarConvidado(await response.json())
       setConvidados((prev) => prev.map((c) => (c.id === id ? atualizado : c)))
     } catch (error) {
       console.error(error)
-      setConvidados(estadoAnterior)
-      setErroAcompanhantes('Não foi possível atualizar os acompanhantes. Tente novamente.')
+      setErroAcompanhantes(
+        error instanceof Error ? error.message : 'Não foi possível atualizar os acompanhantes. Tente novamente.'
+      )
     }
   }
 

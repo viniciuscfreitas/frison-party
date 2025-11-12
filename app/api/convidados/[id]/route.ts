@@ -3,6 +3,7 @@ import {
   deleteConvidado,
   updateConvidadoInfo,
   updateConvidadoStatus,
+  incrementarAcompanhantes,
 } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -22,25 +23,15 @@ export async function PUT(
       return NextResponse.json({ error: 'ID inválido' }, { status: 400, headers: JSON_HEADERS });
     }
 
-    const { entrou, acompanhantesPresentes } = await request.json();
-    if (typeof entrou === 'undefined' && typeof acompanhantesPresentes === 'undefined') {
+    const { entrou } = await request.json();
+    if (typeof entrou !== 'boolean') {
       return NextResponse.json(
-        { error: 'Nenhum campo para atualizar informado.' },
+        { error: 'Campo "entrou" obrigatório (boolean).' },
         { status: 400, headers: JSON_HEADERS }
       );
     }
 
-    const entrouValue = typeof entrou === 'boolean' ? entrou : undefined;
-    if (typeof entrouValue === 'undefined') {
-      return NextResponse.json({ error: 'Campo "entrou" obrigatório.' }, { status: 400, headers: JSON_HEADERS });
-    }
-
-    const acompanhanteNumber =
-      typeof acompanhantesPresentes === 'undefined'
-        ? undefined
-        : Math.max(0, Math.floor(Number(acompanhantesPresentes) || 0));
-
-    const convidado = updateConvidadoStatus(id, entrouValue, acompanhanteNumber);
+    const convidado = updateConvidadoStatus(id, entrou);
 
     return convidado
       ? NextResponse.json(convidado, { headers: JSON_HEADERS })

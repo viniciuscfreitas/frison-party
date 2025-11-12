@@ -26,6 +26,7 @@ export function getDb(): Database.Database {
 
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS convidados (
@@ -93,27 +94,62 @@ export function createConvidado(
 
 export function updateConvidadoStatus(
   id: number,
-  entrou: boolean,
-  acompanhantesPresentes?: number
+  entrou: boolean
 ): Convidado | null {
   const database = getDb();
-  const acompanhantes = acompanhantesPresentes ?? null;
-  const stmt = acompanhantes !== null
-    ? database.prepare(
-        'UPDATE convidados SET entrou = ?, acompanhantes_presentes = ? WHERE id = ?'
-      )
-    : database.prepare('UPDATE convidados SET entrou = ? WHERE id = ?');
-  const result =
-    acompanhantes !== null
-      ? stmt.run(entrou ? 1 : 0, Math.max(0, acompanhantes), id)
-      : stmt.run(entrou ? 1 : 0, id);
-
-  if (result.changes === 0) {
-    return null;
+  
+  if (entrou) {
+    const stmt = database.prepare('UPDATE convidados SET entrou = 1 WHERE id = ?');
+    const result = stmt.run(id);
+    if (result.changes === 0) {
+      return null;
+    }
+  } else {
+    const stmt = database.prepare(
+      'UPDATE convidados SET entrou = 0, acompanhantes_presentes = 0 WHERE id = ?'
+    );
+    const result = stmt.run(id);
+    if (result.changes === 0) {
+      return null;
+    }
   }
 
   const getStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
   return getStmt.get(id) as Convidado;
+}
+
+export function incrementarAcompanhantes(
+  id: number,
+  delta: number
+): Convidado | null {
+  const database = getDb();
+  
+  const updateStmt = delta > 0
+    ? database.prepare(
+        'UPDATE convidados SET acompanhantes_presentes = MAX(0, acompanhantes_presentes + ?) WHERE id = ? AND entrou = 1'
+      )
+    : database.prepare(
+        'UPDATE convidados SET acompanhantes_presentes = MAX(0, acompanhantes_presentes + ?) WHERE id = ?'
+      );
+  
+  const result = delta > 0
+    ? updateStmt.run(delta, id)
+    : updateStmt.run(delta, id);
+  
+  if (result.changes === 0) {
+    if (delta > 0) {
+      const checkStmt = database.prepare('SELECT id FROM convidados WHERE id = ?');
+      const exists = checkStmt.get(id);
+      if (!exists) {
+        return null;
+      }
+      throw new Error('Convidado deve estar presente para adicionar acompanhantes');
+    }
+    return null;
+  }
+  
+  const getFinalStmt = database.prepare('SELECT * FROM convidados WHERE id = ?');
+  return getFinalStmt.get(id) as Convidado;
 }
 
 export function updateConvidadoInfo(
