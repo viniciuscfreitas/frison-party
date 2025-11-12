@@ -302,11 +302,6 @@ const ConvidadosApp = () => {
   }
 
   const totalConvidados = convidados.length
-  const acompanhantesPrevistos = convidados.reduce((acc, c) => {
-    const total = Math.max(1, c.total_confirmados ?? 1)
-    return acc + Math.max(0, total - 1)
-  }, 0)
-  const totalPrevistos = totalConvidados + acompanhantesPrevistos
   const convidadosPresentes = convidados.filter((c) => c.entrou === 1).length
   const acompanhantesPresentes = convidados.reduce(
     (acc, c) => acc + (c.entrou === 1 ? c.acompanhantes_presentes : 0),
@@ -400,10 +395,6 @@ const ConvidadosApp = () => {
             <div>
               <span className="text-sm text-gray-600">Convidados cadastrados: </span>
               <span className="font-bold">{totalConvidados}</span>
-            </div>
-            <div>
-              <span className="text-sm text-gray-600">Previstos (pessoas): </span>
-              <span className="font-bold">{totalPrevistos}</span>
             </div>
             <div>
               <span className="text-sm text-gray-600">Convidados presentes: </span>
