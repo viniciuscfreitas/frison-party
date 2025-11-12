@@ -1,25 +1,14 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { read, utils } from 'xlsx';
 import {
   normalizarTotalConfirmados,
   padronizarNome,
   padronizarTelefone,
 } from '../lib/convidado-normalize';
-import { readCsvAsUtf8 } from '../lib/encoding';
+import { parseCsv } from '../lib/csv-parser';
 import { createConvidado, getDb } from '../lib/db';
 
 const csvPath = join(process.cwd(), 'dados', 'ListaOficial_FestaFrison.csv');
-
-const toString = (value: unknown): string => {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return value.toString();
-  if (value === null || typeof value === 'undefined') return '';
-  return String(value);
-};
-
-const sanitize = (value: unknown): string =>
-  toString(value).replace(/^[\s,'"`]+|[\s,'"`]+$/g, '').trim();
 
 async function extractCsv() {
   console.log(`Procurando arquivo CSV em: ${csvPath}`);
@@ -29,23 +18,9 @@ async function extractCsv() {
     return;
   }
 
-  const utf8Buffer = readCsvAsUtf8(csvPath);
-  console.log('Arquivo convertido para UTF-8');
-  
-  const binaryString = utf8Buffer.toString('binary');
-  const workbook = read(binaryString, { type: 'binary' });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    console.error('Erro: CSV sem planilha válida.');
-    return;
-  }
-
-  const sheet = workbook.Sheets[sheetName];
-  const rows = utils.sheet_to_json<(string | number)[]>(sheet, {
-    header: 1,
-    blankrows: false,
-    defval: '',
-  });
+  console.log('Lendo CSV...');
+  const rows = parseCsv(csvPath);
+  console.log(`Total de linhas lidas: ${rows.length}`);
 
   if (rows.length === 0) {
     console.log('Aviso: CSV vazio ou sem dados.');
@@ -53,8 +28,8 @@ async function extractCsv() {
   }
 
   const headerIndex = rows.findIndex((row) => {
-    const numero = sanitize(row[1]).toLowerCase();
-    const nome = sanitize(row[2]).toLowerCase();
+    const numero = row[1]?.toLowerCase().trim() || '';
+    const nome = row[2]?.toLowerCase().trim() || '';
     return numero.startsWith('n') && nome.startsWith('nome');
   });
 
@@ -64,7 +39,7 @@ async function extractCsv() {
   }
 
   const dataRows = rows.slice(headerIndex + 1);
-  console.log(`Total de linhas lidas do CSV: ${dataRows.length}`);
+  console.log(`Total de dados: ${dataRows.length}`);
 
   const database = getDb();
   const checkStmt = database.prepare('SELECT COUNT(*) as count FROM convidados');
@@ -79,14 +54,14 @@ async function extractCsv() {
   let skipped = 0;
 
   for (const row of dataRows) {
-    const nomeBruto = sanitize(row[2]);
+    const nomeBruto = (row[2] || '').trim();
     if (!nomeBruto || /^total/i.test(nomeBruto)) {
       skipped++;
       continue;
     }
 
-    const telefoneBruto = sanitize(row[3]);
-    const totalRaw = sanitize(row[7]);
+    const telefoneBruto = (row[3] || '').trim();
+    const totalRaw = (row[7] || '').trim();
 
     const nomePadronizado = padronizarNome(nomeBruto);
 

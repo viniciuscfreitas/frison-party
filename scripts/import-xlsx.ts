@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
 import XLSX from 'xlsx';
 import { createConvidado, getDb } from '../lib/db';
-import { readCsvAsUtf8 } from '../lib/encoding';
+import { parseCsv } from '../lib/csv-parser';
 import {
   normalizarTotalConfirmados,
   padronizarNome,
@@ -86,18 +86,15 @@ async function main() {
 
   const isCsv = inputPath.toLowerCase().endsWith('.csv');
   
-  let workbook: XLSX.WorkBook;
+  let rows: unknown[][];
   if (isCsv) {
-    const utf8Buffer = readCsvAsUtf8(inputPath);
-    console.log('Arquivo CSV convertido para UTF-8');
-    const binaryString = utf8Buffer.toString('binary');
-    workbook = XLSX.read(binaryString, { type: 'binary' });
+    console.log('Lendo CSV...');
+    rows = parseCsv(inputPath);
   } else {
-    workbook = XLSX.readFile(inputPath);
+    const workbook = XLSX.readFile(inputPath);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][];
   }
-  
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][];
 
   if (rows.length === 0) {
     console.log('Planilha vazia. Nada a importar.');
