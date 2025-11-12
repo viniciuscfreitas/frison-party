@@ -39,4 +39,3 @@ export function readCsvAsUtf8(filePath: string): Buffer {
   const buffer = readFileSync(filePath);
   return convertToUtf8(buffer);
 }
-
